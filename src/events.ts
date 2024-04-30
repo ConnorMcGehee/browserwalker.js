@@ -77,9 +77,11 @@ export default (client: Client) => {
         if (!message) return
         
         const player = await client.wait_for(() => client.players.get(id))
+        client.emit('chat', [player, message]);
+
         const prefix = client.cmdPrefix.find(v => message.toLowerCase().startsWith(v))
 
-        if (!prefix) return client.emit('chat', [player, message])
+        if (!prefix) return;
 
         const slice = message.substring(prefix.length)
         const arg_regex = /"[^"]+"|'[^']+'|[\w\-]+/gi // TODO add escape char \
