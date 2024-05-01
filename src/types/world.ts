@@ -1,10 +1,10 @@
 
 import stream from "stream"
 import YAML from 'yaml'
-import Block, { WorldPosition } from "./types/block.js"
-import { HeaderTypes, SpecialBlockData } from "./data/consts.js"
-import { BlockMappings, BlockMappingsReverse } from './data/mappings.js'
-import { get2dArray, read7BitInt } from "./math.js"
+import Block, { WorldPosition } from "./block.js"
+import { HeaderTypes, SpecialBlockData } from "../data/consts.js"
+import { BlockMappings, BlockMappingsReverse } from '../data/mappings.js'
+import { get2dArray, read7BitInt } from "../math.js"
 
 function readInt16LE(uint8Array: Uint8Array, offset: number): number {
     return uint8Array[offset] | (uint8Array[offset + 1] << 8);
@@ -50,6 +50,7 @@ export default class World {
         this.foreground = get2dArray(width, height)
         this.background = get2dArray(width, height)
         this.meta = {}
+        this.clear(false)
     }
 
     clear(border: boolean) {
@@ -57,8 +58,8 @@ export default class World {
             for (let y = 0; y < this.height; y++) {
                 const atBorder = border && (x == 0 || y == 0 || x == this.width - 1 || y == this.height - 1)
 
-                this.foreground[x][y] = atBorder ? new Block(BlockMappings['basic_gray']) : new Block(0),
-                    this.background[x][y] = new Block(0)
+                this.foreground[x][y] = atBorder ? new Block(BlockMappings['basic_gray']) : new Block(0)
+                this.background[x][y] = new Block(0)
             }
         }
     }
@@ -103,7 +104,10 @@ export default class World {
         const arg_types: HeaderTypes[] = SpecialBlockData[block.name] || [];
 
         for (const type of arg_types) {
+<<<<<<< HEAD:src/world.ts
             let length, newOffset; // Declare variables here
+=======
+>>>>>>> eda3386462d5efb8dfcfe3212099ea3f09110b45:src/types/world.ts
             switch (type) {
                 case HeaderTypes.String:
                     [length, newOffset] = read7BitInt(uint8Array, offset);
@@ -191,6 +195,22 @@ export default class World {
             }
     }
 
+    public replace_all(block: Block, new_block: Block) {
+        for (let x = 0; x < this.width; x++)
+            for (let y = 0; y < this.height; y++) {
+                if (this.foreground[x][y].name == block.name)
+                    this.foreground[x][y] = new_block
+                if (this.background[x][y].name == block.name)
+                    this.background[x][y] = new_block
+            }
+    }
+
+    //
+    //
+    // Parsers
+    //
+    //
+
     /**
      * Write world data into a stream
      */
@@ -277,15 +297,29 @@ export default class World {
     }
 
     //
+    //
     // World Information
     //
+    //
 
-    public get total_coins(): number {
+    public total(block: string): number {
         let value = 0
         for (let x = 0; x < this.width; x++)
             for (let y = 0; y < this.height; y++)
-                if (this.foreground[x][y].name == 'coin')
+                if (this.foreground[x][y].name == block)
                     value++
+        return value
+    }
+
+    public list(block: string): WorldPosition[] {
+        let value: WorldPosition[] = []
+        for (let x = 0; x < this.width; x++)
+            for (let y = 0; y < this.height; y++) {
+                if (this.foreground[x][y].name == block)
+                    value.push([x, y, 1])
+                if (this.background[x][y].name == block)
+                    value.push([x, y, 0])
+            }
         return value
     }
 }
