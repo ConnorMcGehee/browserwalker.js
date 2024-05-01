@@ -1,5 +1,7 @@
 {
   "name": "browserwalker.js",
+  "version": "0.1.3",
+  "description": "Pixelwalker API bindings for browser development.",
   "version": "0.1.2-beta.1",
   "description": "Pixelwalker.JS API bindings for browser development.",
   "main": "dist/index.js",
