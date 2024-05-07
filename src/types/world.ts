@@ -104,10 +104,7 @@ export default class World {
         const arg_types: HeaderTypes[] = SpecialBlockData[block.name] || [];
 
         for (const type of arg_types) {
-<<<<<<< HEAD:src/world.ts
             let length, newOffset; // Declare variables here
-=======
->>>>>>> eda3386462d5efb8dfcfe3212099ea3f09110b45:src/types/world.ts
             switch (type) {
                 case HeaderTypes.String:
                     [length, newOffset] = read7BitInt(uint8Array, offset);
@@ -267,7 +264,7 @@ export default class World {
 
         world.meta = value.meta
 
-        const palette: string[] = value.palette
+        const palette: (keyof typeof BlockMappings)[] = value.palette
         const foreground: number[] = value.layers.foreground.split(' ').map((v: string) => parseInt(v, 36))
         const background: number[] = value.layers.background.split(' ').map((v: string) => parseInt(v, 36))
         const block_data: any[][] = value.layers.data
@@ -302,7 +299,7 @@ export default class World {
     //
     //
 
-    public total(block: string): number {
+    public total(block: keyof typeof BlockMappings): number {
         let value = 0
         for (let x = 0; x < this.width; x++)
             for (let y = 0; y < this.height; y++)
@@ -311,7 +308,7 @@ export default class World {
         return value
     }
 
-    public list(block: string): WorldPosition[] {
+    public list(block: keyof typeof BlockMappings): WorldPosition[] {
         let value: WorldPosition[] = []
         for (let x = 0; x < this.width; x++)
             for (let y = 0; y < this.height; y++) {

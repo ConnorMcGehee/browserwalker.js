@@ -12,7 +12,7 @@ export default class Scheduler {
 
     private client: Client
     private intervals: NodeJS.Timeout[] = []
-    public block_queue: Map<`${number}.${number}.${0|1}`, Block>
+    public block_queue: Map<`${number}.${number}.${0 | 1}`, Block>
 
     constructor(client: Client) {
         this.client = client
@@ -43,27 +43,40 @@ export default class Scheduler {
             const [pos, block]: [string, Block] = entry.value
             const [x, y, layer] = pos.split('.').map(v => parseInt(v))
 
-            const buffer: Buffer[] = [Magic(0x6B), Bit7(MessageType['placeBlock']), Int32(x), Int32(y), Int32(layer), Int32(block.id)]
+            const uint8Array: Uint8Array[] = [Magic(0x6B), Bit7(MessageType['placeBlock']), Int32(x), Int32(y), Int32(layer), Int32(block.id)]
             const arg_types: HeaderTypes[] = SpecialBlockData[block.name] || []
 
             for (let i = 0; i < arg_types.length; i++) {
                 switch (arg_types[i]) {
                     case HeaderTypes.Byte:
-                        buffer.push(Byte(block.data[i]))
+                        uint8Array.push(Byte(block.data[i]))
                     // TODO other types
                     case HeaderTypes.Int32:
-                        buffer.push(Int32(block.data[i]))
+                        uint8Array.push(Int32(block.data[i]))
                         break
                     // TODO other types
                     case HeaderTypes.Boolean:
-                        buffer.push(Boolean(block.data[i]))
+                        uint8Array.push(Boolean(block.data[i]))
                         break
                 }
             }
 
             // console.log(pos, block)
 
-            this.client.send(Buffer.concat(buffer))
+            function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+                let totalLength = arrays.reduce((acc, value) => acc + value.length, 0);
+                let result = new Uint8Array(totalLength);
+                let offset = 0;
+
+                arrays.forEach(array => {
+                    result.set(array, offset);
+                    offset += array.length;
+                });
+
+                return result;
+            }
+
+            this.client.send(concatUint8Arrays(uint8Array));
         }
     }
 
@@ -73,7 +86,7 @@ export default class Scheduler {
     public block([x, y, layer]: WorldPosition, block: Block) {
         if (!this.client.connected) return Promise.reject("Client not connected!")
 
-        const key: `${number}.${number}.${0|1}` = `${x}.${y}.${layer}`
+        const key: `${number}.${number}.${0 | 1}` = `${x}.${y}.${layer}`
         this.block_queue.set(key, block)
 
         const promise = (res: (v: any) => void, rej: (v: any) => void) => {
@@ -91,6 +104,7 @@ export default class Scheduler {
      */
     public stop() {
         this.intervals.forEach(i => clearInterval(i))
+        this.block_queue.clear()
         this.running = false
     }
 }

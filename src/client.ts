@@ -73,7 +73,7 @@ export default class Client extends EventEmitter<LibraryEvents> {
     /**
      * Connect client to server
      */
-    public async connect(world_id: string, room_type?: string) {
+    public async connect(world_id: string, room_type?: typeof RoomTypes[0]) {
         if (world_id == undefined) throw new Error('`world_id` was not provided in `Client.connect()`')
         if (room_type && !RoomTypes.includes(room_type)) throw new Error(`\`room_type\` expected to be one of ${RoomTypes}, got \`${room_type}\``)
         if (!room_type) room_type = RoomTypes[0]
@@ -129,6 +129,8 @@ export default class Client extends EventEmitter<LibraryEvents> {
                 return
             }
 
+            this.raw.emit('*', [event_name, ...data])
+
             return this.raw.emit(event_name, data as any)
         }
 
@@ -149,13 +151,15 @@ export default class Client extends EventEmitter<LibraryEvents> {
      * control flow till certain information is received.
      */
     public wait_for<WaitType>(condition: (() => WaitType | undefined)): Promise<WaitType> {
-        const binder = (res: (v: WaitType) => void) => {
+        const promise = (res: (v: WaitType) => void, rej: (v: any) => void) => {
             let x: WaitType | undefined = condition()
-            if (x) res(x)
-            else binder.bind(res)
+            if (!this.connected) rej("Client not connected!")
+            if (x) return res(x)
+            // else binder.bind(res)
+            setTimeout(() => promise(res, rej), 5)
         }
 
-        return new Promise(res => binder(res))
+        return new Promise((res, rej) => promise(res, rej))
     }
 
     /**
@@ -228,8 +232,8 @@ export default class Client extends EventEmitter<LibraryEvents> {
         return this.send(Magic(0x6B), Bit7(MessageType['chatMessage']), String(content))
     }
 
-    public block(x: number, y: number, layer: 0 | 1, block: number | string | Block): Promise<boolean> {
-        if (!this.connected) return Promise.resolve(false)
+    public block(x: number, y: number, layer: 0 | 1, block: number | keyof typeof BlockMappings | Block): Promise<boolean> {
+        if (!this.connected) return Promise.reject("Client not connected")
         if (typeof block == 'string' || typeof block == 'number') block = new Block(block)
         if (!(block instanceof Block)) return Promise.resolve(true)
         if (!this.scheduler.running) { throw new Error('Scheduler is not defined.') }
@@ -286,7 +290,12 @@ export default class Client extends EventEmitter<LibraryEvents> {
         while (to_be_placed.length > 0) {
             const yielded = generator.next()
             const [[x, y, layer], block]: any = yielded.value
-            promises.push(this.block(x, y, layer, block))
+
+            const promise = this.block(x, y, layer, block)
+            promise.catch(v => {
+                throw new Error(v)
+            })
+            promises.push(promise)
             // promises_debug.push(block)
         }
 
