@@ -39,7 +39,7 @@ export default function init_events (client: Client) {
      * On player join, create a player object with data
      * and emit `player:join` with said object.
      */
-    client.raw.on('playerJoined', async ([id, cuid, username, face, isAdmin, x, y, coins, blue_coins, deaths, god_mode, mod_mode, has_crown]) => {
+    client.raw.on('playerJoined', async ([id, cuid, username, face, isAdmin, can_edit, can_godmode, x, y, coins, blue_coins, deaths, god_mode, mod_mode, has_crown]) => {
         const player = new Player({
             client,
             id,
@@ -76,17 +76,18 @@ export default function init_events (client: Client) {
      * emit command, otherwise emit chat message
      */
     client.raw.on('chatMessage', async ([id, message]) => {
-        if (!message) return
-        
         const player = await client.wait_for(() => client.players.get(id))
-        client.emit('chat', [player, message]);
+
+        client.emit('chat', [player, message])
+
+        if (!message) return
 
         const prefix = client.cmdPrefix.find(v => message.toLowerCase().startsWith(v))
 
-        if (!prefix) return;
+        if (!prefix) return
 
         const slice = message.substring(prefix.length)
-        const arg_regex = /"[^"]+"|'[^']+'|[\w\-]+/gi // TODO add escape char \
+        const arg_regex = /"(\\\\|\\"|[^"])*"|'(\\\\|\\'|[^'])*'|[^\s]+/gi
         const args: [Player, ...any] = [player]
         for (const match of slice.matchAll(arg_regex)) args.push(match[0])
         if (args.length < 2) return
@@ -116,6 +117,18 @@ export default function init_events (client: Client) {
         player.vertical = vertical
         player.space_down = space_down
         player.space_just_down = space_just_down
+    })
+
+    /**
+     * Teleport player and reset movement
+     */
+    client.raw.on('playerTeleported', async ([id, x, y]) => {
+        const player = await client.wait_for(() => client.players.get(id))
+
+        player.x = x / 16
+        player.y = y / 16
+
+        // TODO
     })
 
     /**
