@@ -104,10 +104,7 @@ export default class World {
         const arg_types: HeaderTypes[] = SpecialBlockData[block.name] || [];
 
         for (const type of arg_types) {
-<<<<<<< HEAD:src/world.ts
             let length, newOffset; // Declare variables here
-=======
->>>>>>> eda3386462d5efb8dfcfe3212099ea3f09110b45:src/types/world.ts
             switch (type) {
                 case HeaderTypes.String:
                     [length, newOffset] = read7BitInt(uint8Array, offset);
